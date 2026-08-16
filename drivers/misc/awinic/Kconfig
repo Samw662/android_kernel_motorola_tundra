@@ -1,0 +1,5 @@
+config AWINIC_SAR
+	tristate "Awinic SAR sensor driver"
+	depends on I2C
+	help
+	  Say Y or M here if you want to support Awinic SAR sensors.
