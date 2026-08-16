@@ -32,9 +32,9 @@ else
         EXTRA_CFLAGS += -I$(ANDROID_BUILD_TOP)/kernel/drivers/base
 endif
 
-KBUILD_EXTRA_SYMBOLS += $(CURDIR)/$(KBUILD_EXTMOD)/../../sensors/$(GKI_OBJ_MODULE_DIR)/Module.symvers
+
 
 #sx937x_sar-y := sx937x_sar.o
 
-obj-m += sx937x_sar.o
+obj-$(CONFIG_SX937X_SAR) += sx937x_sar.o
 

@@ -1,0 +1,3 @@
+config MMI_WATCHDOG_CPU_CTX
+	tristate "MMI watchdog CPU context driver"
+	default m

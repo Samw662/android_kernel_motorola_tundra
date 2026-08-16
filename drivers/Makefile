@@ -195,3 +195,5 @@ obj-$(CONFIG_MOTO_F_USBNET)     += moto_f_usbnet/
 obj-$(CONFIG_SENSORS_CLASS)     += sensors/
 obj-y			        += watchdogtest/
 obj-$(CONFIG_FM_CTRL) 		+= fm/
+obj-$(CONFIG_MMI_TZLOG_DUMP)		+= tzlog_dump/
+obj-$(CONFIG_MMI_WATCHDOG_CPU_CTX)	+= watchdog_cpu_ctx/

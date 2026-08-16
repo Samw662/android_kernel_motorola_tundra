@@ -1,0 +1,3 @@
+config WL2864C
+	tristate "WL2864C camera regulator driver"
+	default m

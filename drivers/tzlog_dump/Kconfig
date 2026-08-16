@@ -1,0 +1,3 @@
+config MMI_TZLOG_DUMP
+	tristate "MMI tzlog dump driver"
+	default m
