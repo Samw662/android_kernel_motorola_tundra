@@ -1,3 +1,12 @@
 config TOUCHSCREEN_MMI
 	tristate "MMI touchscreen framework"
 	default m
+
+config INPUT_TOUCHSCREEN_MMI
+	bool "MMI touchscreen glue for vendor drivers"
+	depends on TOUCHSCREEN_MMI
+	default y
+	help
+	  Compile the touchscreen_mmi glue layer into MMI touchscreen
+	  drivers (goodix, synaptics, etc). This enables registration of
+	  the per-driver device with the MMI touchscreen framework.
