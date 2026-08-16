@@ -103,7 +103,7 @@ static QDF_STATUS __dp_ipa_handle_buf_smmu_mapping(struct dp_soc *soc,
 	qdf_mem_info_t mem_map_table = {0};
 	QDF_STATUS ret = QDF_STATUS_SUCCESS;
 
-	if (!qdf_wlan_ipa_is_ready())
+	if (!qdf_ipa_is_ready())
 		return QDF_STATUS_SUCCESS;
 
 	qdf_update_mem_map_table(soc->osdev, &mem_map_table,
@@ -189,7 +189,7 @@ static QDF_STATUS __dp_ipa_tx_buf_smmu_mapping(
 	qdf_nbuf_t nbuf;
 	uint32_t buf_len;
 
-	if (!wlan_ipa_is_ready()) {
+	if (!ipa_is_ready()) {
 		dp_info("IPA is not READY");
 		return 0;
 	}

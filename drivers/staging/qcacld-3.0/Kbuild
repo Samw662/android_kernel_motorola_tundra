@@ -15,6 +15,8 @@ ifeq ($(KERNEL_BUILD), y)
 	WLAN_COMMON_INC := $(WLAN_ROOT)/$(WLAN_COMMON_ROOT)
 	WLAN_FW_API := $(WLAN_ROOT)/../fw-api/
 	WLAN_PROFILE := default
+	# Tundra uses the QCA6490 PCIe path, not the ICNSS/SNOC path.
+	CONFIG_CNSS_QCA6490 := y
 endif
 
 WLAN_COMMON_ROOT ?= ../qca-wifi-host-cmn
