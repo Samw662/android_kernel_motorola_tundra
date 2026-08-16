@@ -1,0 +1,3 @@
+config BM_ADSP_ULOG
+	tristate "BM ADSP ULOG driver"
+	default m
