@@ -1,0 +1,5 @@
+config QTI_GLINK_CHARGER
+	tristate "QTI glink charger driver"
+	default m
+	help
+	  Say M here if you want to build the QTI glink charger driver.

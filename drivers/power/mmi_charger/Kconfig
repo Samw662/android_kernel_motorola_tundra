@@ -1,0 +1,5 @@
+config MMI_CHARGER
+	tristate "Motorola MMI charger driver"
+	default m
+	help
+	  Say M here if you want to build the Motorola MMI charger driver.
