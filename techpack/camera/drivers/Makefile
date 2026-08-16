@@ -231,7 +231,7 @@ camera-$(CONFIG_SPECTRA_TFE) += \
 
 camera-y += camera_main.o
 
-obj-$(CONFIG_SPECTRA_CAMERA) += camera.o
+obj-y += camera.o
 
 ifeq ($(CONFIG_SPECTRA_CAMERA),m)
 $(info "SPECTRA CAMERA IS BUILT AS DLKM")
