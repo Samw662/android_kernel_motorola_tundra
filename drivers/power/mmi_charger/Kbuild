@@ -11,6 +11,6 @@ ifneq ($(filter m y,$(CONFIG_MMI_RECHARGER_HAWAO_MODE)),)
         EXTRA_CFLAGS += -DCONFIG_MMI_RECHARGER_HAWAO_MODE
 endif
 
-obj-$(CONFIG_MMI_CHARGER) += mmi_charger.o
+obj-y += mmi_charger.o
 
 

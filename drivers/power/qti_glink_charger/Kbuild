@@ -16,7 +16,7 @@ ifneq ($(filter m y,$(CONFIG_SKIP_QTI_CHARGER_CONFIRMAION)),)
 	EXTRA_CFLAGS += -DSKIP_QTI_CHARGER_CONFIRMAION
 endif
 
-obj-$(CONFIG_QTI_GLINK_CHARGER) += qti_glink_charger.o
+obj-y += qti_glink_charger.o
 
 
 
