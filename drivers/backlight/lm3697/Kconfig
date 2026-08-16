@@ -1,0 +1,3 @@
+config LEDS_LM3697
+	tristate "LM3697 backlight"
+	default m

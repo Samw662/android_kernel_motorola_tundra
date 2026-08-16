@@ -246,3 +246,4 @@ source "drivers/tzlog_dump/Kconfig"
 source "drivers/watchdog_cpu_ctx/Kconfig"
 
 endmenu
+source "drivers/backlight/Kconfig"

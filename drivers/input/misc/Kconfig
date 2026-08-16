@@ -915,3 +915,4 @@ config INPUT_STPMIC1_ONKEY
 	  module will be called stpmic1_onkey.
 
 endif
+source "drivers/input/misc/rbs_fod_mmi/Kconfig"

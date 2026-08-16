@@ -1,0 +1,3 @@
+config LEDS_AW99703
+	tristate "AW99703 backlight"
+	default m

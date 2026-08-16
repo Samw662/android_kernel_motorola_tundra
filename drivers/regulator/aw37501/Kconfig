@@ -1,0 +1,3 @@
+config AW37501
+	tristate "AW37501 camera regulator driver"
+	default m

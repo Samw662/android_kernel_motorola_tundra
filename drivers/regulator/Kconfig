@@ -1234,3 +1234,4 @@ endif
 
 
 source "drivers/regulator/wl2864c/Kconfig"
+source "drivers/regulator/aw37501/Kconfig"

@@ -153,3 +153,4 @@ obj-$(CONFIG_VIRTIO_REGULATOR) += virtio_regulator.o
 
 ccflags-$(CONFIG_REGULATOR_DEBUG) += -DDEBUG
 obj-$(CONFIG_WL2864C)	+= wl2864c/
+obj-$(CONFIG_AW37501)	+= aw37501/
