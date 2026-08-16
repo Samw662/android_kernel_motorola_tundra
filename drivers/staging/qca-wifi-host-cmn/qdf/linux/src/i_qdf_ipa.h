@@ -859,9 +859,9 @@ static inline int __qdf_ipa_get_ep_mapping(enum ipa_client_type client)
 	return ipa_get_ep_mapping(client);
 }
 
-static inline bool __qdf_ipa_is_ready(void)
+static inline bool __qdf_wlan_ipa_is_ready(void)
 {
-	return ipa_is_ready();
+	return wlan_ipa_is_ready();
 }
 
 static inline void __qdf_ipa_proxy_clk_vote(void)
