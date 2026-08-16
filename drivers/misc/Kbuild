@@ -63,6 +63,7 @@ obj-$(CONFIG_WIGIG_SENSING_SPI)	+= wigig_sensing.o
 obj-$(CONFIG_HISI_HIKEY_USB)	+= hisi_hikey_usb.o
 
 # Motorola / QTI module additions
+cirrus_cs40l2x-objs = cs40l2x.o cs40l2x-tables.o
 obj-y += cirrus_cs40l2x.o
 obj-$(CONFIG_MMI_SYS_TEMP)      += mmi_sys_temp/
 obj-$(CONFIG_UTAG)              += utag/
