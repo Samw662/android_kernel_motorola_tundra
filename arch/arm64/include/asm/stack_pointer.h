@@ -7,7 +7,8 @@
  */
 static inline unsigned long __current_stack_pointer(void)
 {
-	register unsigned long sp asm("sp");
+	unsigned long sp;
+	asm volatile("mov %0, sp" : "=r"(sp));
 	return sp;
 }
 
