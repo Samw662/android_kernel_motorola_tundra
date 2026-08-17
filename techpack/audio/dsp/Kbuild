@@ -238,6 +238,10 @@ CDEFINES +=	-DANI_LITTLE_BYTE_ENDIAN \
 		-Werror\
 		-D__linux__
 
+ifeq ($(CONFIG_AW882XX_DRIVER_V1), y)
+CDEFINES += -DCONFIG_SND_SOC_AWINIC_AW882XX
+endif
+
 KBUILD_CPPFLAGS += $(CDEFINES)
 
 # Currently, for versions of gcc which support it, the kernel Makefile
