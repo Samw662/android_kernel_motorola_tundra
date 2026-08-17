@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2015-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/of.h>
@@ -1230,11 +1231,6 @@ static int cam_soc_util_get_dt_regulator_info
 {
 	int rc = 0, count = 0, i = 0;
 	struct device_node *of_node = NULL;
-#ifdef CONFIG_CAMERA_VOLTAGE_COMPATIBLE
-	int idpin_gpio = 0, idpin_value = 0;
-	unsigned int second_vol_range[2];
-	const char *rgltr_name = "";
-#endif
 
 	if (!soc_info || !soc_info->dev) {
 		CAM_ERR(CAM_UTIL, "Invalid parameters");
@@ -1298,63 +1294,6 @@ static int cam_soc_util_get_dt_regulator_info
 		CAM_ERR(CAM_UTIL, "No Load curent found rc=%d", rc);
 		return -EINVAL;
 	}
-
-#ifdef CONFIG_CAMERA_VOLTAGE_COMPATIBLE
-	idpin_gpio = of_get_named_gpio(of_node, "volt-compat-gpio",0);
-	if (idpin_gpio < 0) {
-		CAM_ERR(CAM_UTIL, "Not volt-compat-gpio found ,gpio=%d",idpin_gpio);
-	} else {
-		if(gpio_is_valid(idpin_gpio)) {
-			if(!gpio_request(idpin_gpio,"volt-compat-gpio")) {
-				gpio_direction_input(idpin_gpio);
-				CAM_DBG(CAM_UTIL, "volt-compat-gpio:%d =%d ", idpin_gpio, gpio_get_value(idpin_gpio));
-
-				rc = of_property_read_u32_array(of_node, "volt-compat-range", second_vol_range, 2);
-				if (rc) {
-					CAM_ERR(CAM_UTIL, "No volt-compat-range found, rc=%d", rc);
-					gpio_free(idpin_gpio);
-					idpin_gpio = 0;
-					return -EINVAL;
-				}
-
-				rc = of_property_read_string(of_node,"volt-compat-rgltr-name",&rgltr_name);
-				if (rc) {
-					CAM_ERR(CAM_UTIL, "No volt-compat-rgltr-name found, rc=%d", rc);
-					gpio_free(idpin_gpio);
-					idpin_gpio = 0;
-					return -EINVAL;
-				}
-
-				rc = of_property_read_u32(of_node,"volt-compat-gpio-value",&idpin_value);
-				if (rc) {
-					CAM_ERR(CAM_UTIL, "No volt-compat-gpio-value found, rc=%d", rc);
-					gpio_free(idpin_gpio);
-					idpin_gpio = 0;
-					return -EINVAL;
-				}
-
-				if(soc_info->index == 0 && idpin_gpio > 0) {
-					for (i = 0; i < soc_info->num_rgltr; i++) {
-						if((strcmp(soc_info->rgltr_name[i], rgltr_name)== 0)) {
-							int val = 1;
-							val = gpio_get_value(idpin_gpio);
-							if(val == idpin_value) {
-								soc_info->rgltr_min_volt [i]= second_vol_range[0];
-								soc_info->rgltr_max_volt[i]= second_vol_range[1];
-							}
-							CAM_ERR(CAM_UTIL, "cam:%d, %s, voltage range: min:%d max:%d",
-								soc_info->index,soc_info->rgltr_name[i], soc_info->rgltr_min_volt [i],soc_info->rgltr_max_volt[i]);
-						}
-					}
-				}
-			}else{
-				CAM_ERR(CAM_UTIL, "volt-compat-gpio request failed");
-			}
-		}else{
-			CAM_ERR(CAM_UTIL, "volt-compat-gpio is not vaild");
-		}
-	}
-#endif
 
 	return rc;
 }
@@ -2144,8 +2083,7 @@ static int cam_soc_util_dump_dmi_reg_range_user_buf(
 		CAM_ERR(CAM_UTIL,
 			"Invalid input args soc_info: %pK, dump_args: %pK",
 			soc_info, dump_args);
-		rc = -EINVAL;
-		goto end;
+		return -EINVAL;
 	}
 
 	if (dmi_read->num_pre_writes > CAM_REG_DUMP_DMI_CONFIG_MAX ||
@@ -2153,15 +2091,14 @@ static int cam_soc_util_dump_dmi_reg_range_user_buf(
 		CAM_ERR(CAM_UTIL,
 			"Invalid number of requested writes, pre: %d post: %d",
 			dmi_read->num_pre_writes, dmi_read->num_post_writes);
-		rc = -EINVAL;
-		goto end;
+		return -EINVAL;
 	}
 
 	rc = cam_mem_get_cpu_buf(dump_args->buf_handle, &cpu_addr, &buf_len);
 	if (rc) {
 		CAM_ERR(CAM_UTIL, "Invalid handle %u rc %d",
 			dump_args->buf_handle, rc);
-		goto end;
+		return -EINVAL;
 	}
 
 	if (buf_len <= dump_args->offset) {
@@ -2247,6 +2184,8 @@ static int cam_soc_util_dump_dmi_reg_range_user_buf(
 		sizeof(struct cam_hw_soc_dump_header);
 
 end:
+	if (dump_args)
+		cam_mem_put_cpu_buf(dump_args->buf_handle);
 	return rc;
 }
 
@@ -2271,13 +2210,13 @@ static int cam_soc_util_dump_cont_reg_range_user_buf(
 			"Invalid input args soc_info: %pK, dump_out_buffer: %pK reg_read: %pK",
 			soc_info, dump_args, reg_read);
 		rc = -EINVAL;
-		goto end;
+		return rc;
 	}
 	rc = cam_mem_get_cpu_buf(dump_args->buf_handle, &cpu_addr, &buf_len);
 	if (rc) {
 		CAM_ERR(CAM_UTIL, "Invalid handle %u rc %d",
 			dump_args->buf_handle, rc);
-		goto end;
+		return rc;
 	}
 	if (buf_len <= dump_args->offset) {
 		CAM_WARN(CAM_UTIL, "Dump offset overshoot %zu %zu",
@@ -2327,6 +2266,8 @@ static int cam_soc_util_dump_cont_reg_range_user_buf(
 	dump_args->offset +=  hdr->size +
 		sizeof(struct cam_hw_soc_dump_header);
 end:
+	if (dump_args)
+		cam_mem_put_cpu_buf(dump_args->buf_handle);
 	return rc;
 }
 
@@ -2418,6 +2359,8 @@ int cam_soc_util_reg_dump_to_cmd_buf(void *ctx,
 	if (rc || !cpu_addr || (buf_size == 0)) {
 		CAM_ERR(CAM_UTIL, "Failed in Get cpu addr, rc=%d, cpu_addr=%pK",
 			rc, (void *)cpu_addr);
+		if (rc)
+			return rc;
 		goto end;
 	}
 
@@ -2619,6 +2562,7 @@ int cam_soc_util_reg_dump_to_cmd_buf(void *ctx,
 	}
 
 end:
+	cam_mem_put_cpu_buf(cmd_desc->mem_handle);
 	return rc;
 }
 
