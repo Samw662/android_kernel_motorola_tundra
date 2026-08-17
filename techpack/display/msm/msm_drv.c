@@ -43,7 +43,6 @@
 #include <drm/drm_of.h>
 #include <drm/drm_auth.h>
 #include <drm/drm_probe_helper.h>
-#include <linux/reboot.h>
 
 #include "msm_drv.h"
 #include "msm_gem.h"
@@ -429,11 +428,6 @@ static int msm_drm_uninit(struct device *dev)
 		priv->registered = false;
 	}
 
-	if (priv->msm_drv_notifier.notifier_call) {
-		unregister_reboot_notifier(&priv->msm_drv_notifier);
-		priv->msm_drv_notifier.notifier_call = NULL;
-	}
-
 #ifdef CONFIG_DRM_FBDEV_EMULATION
 	if (fbdev && priv->fbdev)
 		msm_fbdev_free(ddev);
@@ -761,23 +755,6 @@ static struct msm_kms *_msm_drm_component_init_helper(
 	return kms;
 }
 
-static void msm_pdev_shutdown(struct platform_device *pdev);
-static int msm_drv_shutdown_notifier_cb(struct notifier_block *nb,
-					unsigned long event, void *unused)
-{
-	struct device *dev;
-	struct platform_device *pdev;
-	struct msm_drm_private *priv = container_of(nb, struct msm_drm_private,
-					msm_drv_notifier);
-
-	dev = priv->dev->dev;
-	pdev = to_platform_device(dev);
-	dev_warn(dev, "prepare to shutdown\n");
-	msm_pdev_shutdown(pdev);
-
-	return NOTIFY_DONE;
-}
-
 static int msm_drm_device_init(struct platform_device *pdev,
 		struct drm_driver *drv)
 {
@@ -961,16 +938,6 @@ static int msm_drm_component_init(struct device *dev)
 
 	drm_kms_helper_poll_init(ddev);
 
-	priv->msm_drv_notifier.notifier_call = msm_drv_shutdown_notifier_cb;
-	priv->msm_drv_notifier.next = NULL;
-	priv->msm_drv_notifier.priority = 1;
-	ret = register_reboot_notifier(&priv->msm_drv_notifier);
-	if (ret) {
-		dev_err(dev, "Failed to register for reboot_notifier. ret = %d\n",
-					ret);
-		goto fail;
-	}
-
 	return 0;
 
 fail:
@@ -985,6 +952,25 @@ mdss_init_fail:
 	kfree(priv);
 
 	return ret;
+}
+
+void msm_atomic_flush_display_threads(struct msm_drm_private *priv)
+{
+	int i;
+
+	if (!priv) {
+		SDE_ERROR("invalid private data\n");
+		return;
+	}
+
+	for (i = 0; i < priv->num_crtcs; i++) {
+		if (priv->disp_thread[i].thread)
+			kthread_flush_worker(&priv->disp_thread[i].worker);
+		if (priv->event_thread[i].thread)
+			kthread_flush_worker(&priv->event_thread[i].worker);
+	}
+
+	kthread_flush_worker(&priv->pp_event_worker);
 }
 
 /*
@@ -1075,8 +1061,17 @@ static void msm_lastclose(struct drm_device *dev)
 	 * commit then ignore the last close call
 	 */
 	if (kms->funcs && kms->funcs->check_for_splash
-		&& kms->funcs->check_for_splash(kms, NULL))
-		return;
+		&& kms->funcs->check_for_splash(kms, NULL)) {
+		msm_wait_event_timeout(priv->pending_crtcs_event, !priv->pending_crtcs,
+			LASTCLOSE_TIMEOUT_MS, rc);
+		if (!rc)
+			DRM_INFO("wait for crtc mask 0x%x failed, commit anyway...\n",
+				priv->pending_crtcs);
+
+		rc = kms->funcs->trigger_null_flush(kms);
+		if (rc)
+			return;
+	}
 
 	/*
 	 * clean up vblank disable immediately as this is the last close.
@@ -1098,6 +1093,8 @@ static void msm_lastclose(struct drm_device *dev)
 	if (!rc)
 		DRM_INFO("wait for crtc mask 0x%x failed, commit anyway...\n",
 				priv->pending_crtcs);
+
+	msm_atomic_flush_display_threads(priv);
 
 	if (priv->fbdev) {
 		rc = drm_fb_helper_restore_fbdev_mode_unlocked(priv->fbdev);
@@ -1576,8 +1573,15 @@ static int msm_release(struct inode *inode, struct file *filp)
 	 * refcount > 1. This operation is not triggered from upstream
 	 * drm as msm_driver does not support DRIVER_LEGACY feature.
 	 */
-	if (drm_is_current_master(file_priv))
+	if (drm_is_current_master(file_priv)) {
+		msm_wait_event_timeout(priv->pending_crtcs_event, !priv->pending_crtcs,
+			LASTCLOSE_TIMEOUT_MS, ret);
+		if (!ret)
+			DRM_INFO("wait for crtc mask 0x%x failed, commit anyway...\n",
+				priv->pending_crtcs);
+
 		msm_preclose(dev, file_priv);
+	}
 
 	ret = drm_release(inode, filp);
 	filp->private_data = NULL;
@@ -1746,38 +1750,6 @@ int msm_ioctl_display_hint_ops(struct drm_device *dev, void *data,
 	return 0;
 }
 
-static int msm_ioctl_set_panel_feature(struct drm_device *dev, void *data,
-		struct drm_file *file_priv)
-{
-	struct msm_drm_private *priv;
-	struct msm_kms *kms;
-	struct panel_param_info *param_info = data;
-	int ret;
-
-	priv = dev->dev_private;
-	kms = priv->kms;
-
-	if (unlikely(!param_info)) {
-		DRM_ERROR("ioctl_set_panel_feature invalid data\n");
-		return -EINVAL;
-	}
-
-	DRM_INFO("ioctl_set_panel_feature idx=%d, value=%d\n",
-		param_info->param_idx, param_info->value);
-
-	if (kms && kms->funcs && kms->funcs->set_panel_feature) {
-		ret = kms->funcs->set_panel_feature(kms, *param_info);
-		if (ret) {
-			DRM_ERROR("kms set_panel_feature failed.\n");
-			goto fail;
-		}
-	}
-
-	return 0;
-fail:
-	return ret;
-}
-
 static const struct drm_ioctl_desc msm_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(MSM_GEM_NEW,      msm_ioctl_gem_new,      DRM_AUTH|DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(MSM_GEM_CPU_PREP, msm_ioctl_gem_cpu_prep, DRM_AUTH|DRM_RENDER_ALLOW),
@@ -1792,8 +1764,6 @@ static const struct drm_ioctl_desc msm_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(MSM_POWER_CTRL, msm_ioctl_power_ctrl,
 			DRM_RENDER_ALLOW),
 	DRM_IOCTL_DEF_DRV(MSM_DISPLAY_HINT, msm_ioctl_display_hint_ops,
-			DRM_UNLOCKED),
-	DRM_IOCTL_DEF_DRV(SET_PANEL_FEATURE, msm_ioctl_set_panel_feature,
 			DRM_UNLOCKED),
 };
 
