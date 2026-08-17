@@ -126,8 +126,6 @@ struct msm_kms_funcs {
 			struct drm_atomic_state *state);
 	/* check for continuous splash status */
 	bool (*check_for_splash)(struct msm_kms *kms, struct drm_crtc *crtc);
-	/*trigger null flush if stuck in cont splash*/
-	int (*trigger_null_flush)(struct msm_kms *kms);
 	/* topology lm information */
 	int (*get_mixer_count)(const struct msm_kms *kms,
 			const struct drm_display_mode *mode,
@@ -135,6 +133,9 @@ struct msm_kms_funcs {
 	/* topology dsc information */
 	int (*get_dsc_count)(const struct msm_kms *kms,
 			u32 hdisplay, u32 *num_dsc);
+	/* set panel feature */
+	int (*set_panel_feature)(const struct msm_kms *kms,
+			struct panel_param_info param_info);
 };
 
 struct msm_kms {
