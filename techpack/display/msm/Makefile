@@ -120,8 +120,7 @@ msm_drm-$(CONFIG_DRM_MSM_DSI) += dsi/dsi_phy.o \
 	dsi/dsi_display.o \
 	dsi/dsi_panel.o \
 	dsi/dsi_clk_manager.o \
-	dsi/dsi_display_test.o \
-	dsi/dsi_display_mot_ext.o
+	dsi/dsi_display_test.o
 
 msm_drm-$(CONFIG_PANEL_NOTIFICATIONS) += dsi/panel_notifier.o
 
