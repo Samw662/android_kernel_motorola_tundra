@@ -18129,7 +18129,12 @@ static int __init hdd_module_init(void)
 	if (ret)
 		hdd_err("Failed to create sysfs entry");
 
-	return ret;
+	if (hdd_driver_load()) {
+		hdd_err("Failed to load wlan driver");
+		return -EINVAL;
+	}
+
+	return 0;
 }
 #endif
 
@@ -19680,4 +19685,3 @@ static const struct kernel_param_ops timer_multiplier_ops = {
 };
 
 module_param_cb(timer_multiplier, &timer_multiplier_ops, NULL, 0644);
-
