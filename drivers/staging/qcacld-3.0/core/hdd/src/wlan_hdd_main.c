@@ -18121,29 +18121,6 @@ static int hdd_module_init(void)
 }
 #endif
 #else
-#define WLAN_DEFERRED_RETRIES 30
-
-static int hdd_deferred_retries = WLAN_DEFERRED_RETRIES;
-static void hdd_deferred_load_work(struct work_struct *work);
-static DECLARE_DELAYED_WORK(hdd_deferred_load_wq, hdd_deferred_load_work);
-
-static void hdd_deferred_load_work(struct work_struct *work)
-{
-	if (wlan_loader && wlan_loader->loaded_state)
-		return;
-
-	if (hdd_driver_load()) {
-		if (--hdd_deferred_retries > 0)
-			schedule_delayed_work(&hdd_deferred_load_wq, 2 * HZ);
-		else
-			hdd_err("Deferred wlan driver load failed");
-		return;
-	}
-
-	if (wlan_loader)
-		wlan_loader->loaded_state = MODULE_INITIALIZED;
-}
-
 static int __init hdd_module_init(void)
 {
 	int ret = -EINVAL;
@@ -18151,8 +18128,6 @@ static int __init hdd_module_init(void)
 	ret = wlan_init_sysfs();
 	if (ret)
 		hdd_err("Failed to create sysfs entry");
-	else
-		schedule_delayed_work(&hdd_deferred_load_wq, 2 * HZ);
 
 	return ret;
 }
@@ -19705,3 +19680,4 @@ static const struct kernel_param_ops timer_multiplier_ops = {
 };
 
 module_param_cb(timer_multiplier, &timer_multiplier_ops, NULL, 0644);
+
