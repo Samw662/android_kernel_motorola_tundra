@@ -13008,12 +13008,8 @@ struct hdd_context *hdd_context_create(struct device *dev)
 
 	status = cfg_parse(WLAN_INI_FILE);
 	if (QDF_IS_STATUS_ERROR(status)) {
-		hdd_err("Failed to parse cfg %s; status:%d\n",
-			WLAN_INI_FILE, status);
-		/* Assert if failed to parse at least one INI parameter */
-		QDF_BUG(status != QDF_STATUS_E_INVAL);
-		ret = qdf_status_to_os_return(status);
-		goto err_free_config;
+		hdd_warn("Failed to parse cfg %s; status:%d, using defaults\n",
+			 WLAN_INI_FILE, status);
 	}
 
 	ret = hdd_objmgr_create_and_store_psoc(hdd_ctx, DEFAULT_PSOC_ID);
@@ -13070,8 +13066,6 @@ err_hdd_objmgr_destroy:
 
 err_release_store:
 	cfg_release();
-
-err_free_config:
 	qdf_mem_free(hdd_ctx->config);
 
 err_free_hdd_context:
@@ -18121,6 +18115,29 @@ static int hdd_module_init(void)
 }
 #endif
 #else
+#define WLAN_DEFERRED_RETRIES 30
+
+static int hdd_deferred_retries = WLAN_DEFERRED_RETRIES;
+static void hdd_deferred_load_work(struct work_struct *work);
+static DECLARE_DELAYED_WORK(hdd_deferred_load_wq, hdd_deferred_load_work);
+
+static void hdd_deferred_load_work(struct work_struct *work)
+{
+	if (wlan_loader && wlan_loader->loaded_state)
+		return;
+
+	if (hdd_driver_load()) {
+		if (--hdd_deferred_retries > 0)
+			schedule_delayed_work(&hdd_deferred_load_wq, 2 * HZ);
+		else
+			hdd_err("Deferred wlan driver load failed");
+		return;
+	}
+
+	if (wlan_loader)
+		wlan_loader->loaded_state = MODULE_INITIALIZED;
+}
+
 static int __init hdd_module_init(void)
 {
 	int ret = -EINVAL;
@@ -18128,13 +18145,10 @@ static int __init hdd_module_init(void)
 	ret = wlan_init_sysfs();
 	if (ret)
 		hdd_err("Failed to create sysfs entry");
+	else
+		schedule_delayed_work(&hdd_deferred_load_wq, 2 * HZ);
 
-	if (hdd_driver_load()) {
-		hdd_err("Failed to load wlan driver");
-		return -EINVAL;
-	}
-
-	return 0;
+	return ret;
 }
 #endif
 
