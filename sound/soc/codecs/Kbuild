@@ -68,4 +68,4 @@ tas2562-objs = tas2562-codec.o tas2562-regmap.o tas25xx-algo.o tas25xx-calib.o
 obj-m += tas2562.o
 
 snd_smartpa_aw882xx-objs = aw882xx.o
-obj-m += snd_smartpa_aw882xx.o
+obj-y += snd_smartpa_aw882xx.o
