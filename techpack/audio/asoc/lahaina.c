@@ -6413,16 +6413,6 @@ static struct snd_soc_dai_link msm_common_misc_fe_dai_links[] = {
 		.ignore_pmdown_time = 1,
 		SND_SOC_DAILINK_REG(slimbus8_hostless),
 	},
-	{/* hw:x,39 */
-		.name = LPASS_BE_TX_CDC_DMA_TX_5,
-		.stream_name = "TX CDC DMA5 Capture",
-		.id = MSM_BACKEND_DAI_TX_CDC_DMA_TX_5,
-		.be_hw_params_fixup = msm_be_hw_params_fixup,
-		.ignore_suspend = 1,
-		.no_host_mode = SND_SOC_DAI_LINK_NO_HOST,
-		.ops = &msm_cdc_dma_be_ops,
-		SND_SOC_DAILINK_REG(tx_cdcdma5_tx),
-	},
 	{/* hw:x,40 */
 		.name = MSM_DAILINK_NAME(Media31),
 		.stream_name = "MultiMedia31",
@@ -6489,18 +6479,7 @@ static struct snd_soc_dai_link msm_common_misc_fe_dai_links[] = {
 	},
 
 
-	{/* hw:x,45 */
-		.name = "Senary MI2S_TX Hostless",
-		.stream_name = "Senary MI2S_TX Hostless Capture",
-		.dynamic = 1,
-		.dpcm_capture = 1,
-		.trigger = {SND_SOC_DPCM_TRIGGER_POST,
-			SND_SOC_DPCM_TRIGGER_POST},
-		.no_host_mode = SND_SOC_DAI_LINK_NO_HOST,
-		.ignore_suspend = 1,
-		.ignore_pmdown_time = 1,
-		SND_SOC_DAILINK_REG(sen_mi2s_tx_hostless),
-	},
+
 
 	/* DISP PORT Hostless */
 	{/* hw:x,46 */
@@ -8022,11 +8001,40 @@ static struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 		       sizeof(msm_common_be_dai_links));
 		total_links += ARRAY_SIZE(msm_common_be_dai_links);
 
-		memcpy(msm_lahaina_dai_links + total_links,
-		       msm_rx_tx_cdc_dma_be_dai_links,
-		       sizeof(msm_rx_tx_cdc_dma_be_dai_links));
-		total_links +=
-			ARRAY_SIZE(msm_rx_tx_cdc_dma_be_dai_links);
+		rc = of_property_read_u32(dev->of_node, "qcom,mi2s-audio-intf",
+					  &mi2s_audio_intf);
+		if (rc) {
+			dev_dbg(dev, "%s: No DT match MI2S audio interface\n",
+				__func__);
+		} else {
+			rc = of_property_read_u32(dev->of_node,
+					"cirrus,prince-max-devs", &cirrus_prince_max_devs);
+			if (rc)
+				cirrus_prince_max_devs = 0;
+
+			rc = of_property_read_u32(dev->of_node,
+					"cirrus,franklin-max-devs", &cirrus_franklin_max_devs);
+			if (rc)
+				cirrus_franklin_max_devs = 0;
+
+			rc = of_property_read_u32(dev->of_node,
+					"awinic,aw882xx-max-devs", &awinic_aw882xx_max_devs);
+			if (rc)
+				awinic_aw882xx_max_devs = 0;
+
+			dev_info(dev,
+				"%s: prince-max-devs %d franklin-max-devs %d awinic_aw882xx_max_devs %d\n",
+				 __func__, cirrus_prince_max_devs, cirrus_franklin_max_devs,
+				 awinic_aw882xx_max_devs);
+		}
+
+		if (awinic_aw882xx_max_devs == 0) {
+			memcpy(msm_lahaina_dai_links + total_links,
+			       msm_rx_tx_cdc_dma_be_dai_links,
+			       sizeof(msm_rx_tx_cdc_dma_be_dai_links));
+			total_links +=
+				ARRAY_SIZE(msm_rx_tx_cdc_dma_be_dai_links);
+		}
 
 		if (wsa_max_devs) {
 			memcpy(msm_lahaina_dai_links + total_links,
@@ -8035,11 +8043,13 @@ static struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 			total_links +=
 				ARRAY_SIZE(msm_wsa_cdc_dma_be_dai_links);
 		}
-		memcpy(msm_lahaina_dai_links + total_links,
-		       msm_va_cdc_dma_be_dai_links,
-		       sizeof(msm_va_cdc_dma_be_dai_links));
-		total_links +=
-			ARRAY_SIZE(msm_va_cdc_dma_be_dai_links);
+		if (awinic_aw882xx_max_devs == 0) {
+			memcpy(msm_lahaina_dai_links + total_links,
+			       msm_va_cdc_dma_be_dai_links,
+			       sizeof(msm_va_cdc_dma_be_dai_links));
+			total_links +=
+				ARRAY_SIZE(msm_va_cdc_dma_be_dai_links);
+		}
 
 		rc = of_property_read_u32(dev->of_node, "qcom,mi2s-audio-intf",
 					  &mi2s_audio_intf);
@@ -8181,14 +8191,16 @@ static struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 		}
 #endif
 
-		rc = of_property_read_u32(dev->of_node, "qcom,wcn-bt", &val);
-		if (!rc && val) {
-			dev_dbg(dev, "%s(): WCN BT support present\n",
-				__func__);
-			memcpy(msm_lahaina_dai_links + total_links,
-			       msm_wcn_be_dai_links,
-			       sizeof(msm_wcn_be_dai_links));
-			total_links += ARRAY_SIZE(msm_wcn_be_dai_links);
+		if (awinic_aw882xx_max_devs == 0) {
+			rc = of_property_read_u32(dev->of_node, "qcom,wcn-bt", &val);
+			if (!rc && val) {
+				dev_dbg(dev, "%s(): WCN BT support present\n",
+					__func__);
+				memcpy(msm_lahaina_dai_links + total_links,
+				       msm_wcn_be_dai_links,
+				       sizeof(msm_wcn_be_dai_links));
+				total_links += ARRAY_SIZE(msm_wcn_be_dai_links);
+			}
 		}
 
 		rc = of_property_read_u32(dev->of_node, "qcom,afe-rxtx-lb",
@@ -8207,7 +8219,7 @@ static struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 			dev_dbg(dev, "%s: No DT match wcn btfm interface\n",
 				__func__);
 		} else {
-			if (wcn_btfm_intf) {
+			if (wcn_btfm_intf && awinic_aw882xx_max_devs == 0) {
 				memcpy(msm_lahaina_dai_links + total_links,
 					msm_wcn_btfm_be_dai_links,
 					sizeof(msm_wcn_btfm_be_dai_links));
