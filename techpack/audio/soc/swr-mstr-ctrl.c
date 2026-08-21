@@ -2358,44 +2358,26 @@ static int swrm_get_device_status(struct swr_mstr_ctrl *swrm, u8 devnum)
 	return val;
 }
 
-static int swrm_get_logical_dev_num(struct swr_master *mstr, u64 dev_id,
+static int swrm_scan_logical_dev_num(struct swr_mstr_ctrl *swrm,
+				struct swr_master *mstr, u64 dev_id,
 				u8 *dev_num)
 {
 	int i;
 	u64 id = 0;
 	int ret = -EINVAL;
-	struct swr_mstr_ctrl *swrm = swr_get_ctrl_data(mstr);
 	struct swr_device *swr_dev;
-	u32 num_dev = 0;
+	u32 num_dev = swrm->num_dev ? swrm->num_dev : mstr->num_dev;
 
-	if (!swrm) {
-		pr_err("%s: Invalid handle to swr controller\n",
-			__func__);
-		return ret;
-	}
-	if (swrm->num_dev)
-		num_dev = swrm->num_dev;
-	else
-		num_dev = mstr->num_dev;
-
-	mutex_lock(&swrm->devlock);
-	if (!swrm->dev_up) {
-		mutex_unlock(&swrm->devlock);
-		return ret;
-	}
-	mutex_unlock(&swrm->devlock);
-
-	pm_runtime_get_sync(swrm->dev);
 	for (i = 1; i < (num_dev + 1); i++) {
 		id = ((u64)(swr_master_read(swrm,
 			    SWRM_ENUMERATOR_SLAVE_DEV_ID_2(i))) << 32);
 		id |= swr_master_read(swrm,
 					SWRM_ENUMERATOR_SLAVE_DEV_ID_1(i));
 
-		/*
-		 * As pm_runtime_get_sync() brings all slaves out of reset
-		 * update logical device number for all slaves.
-		 */
+		dev_info(swrm->dev,
+			"%s: enum slot %d: id 0x%llx status 0x%x\n",
+			__func__, i, id, swrm_get_device_status(swrm, i));
+
 		list_for_each_entry(swr_dev, &mstr->devices, dev_list) {
 			if (swr_dev->addr == (id & SWR_DEV_ID_MASK)) {
 				u32 status = swrm_get_device_status(swrm, i);
@@ -2414,6 +2396,41 @@ static int swrm_get_logical_dev_num(struct swr_master *mstr, u64 dev_id,
 				}
 			}
 		}
+	}
+	return ret;
+}
+
+static int swrm_get_logical_dev_num(struct swr_master *mstr, u64 dev_id,
+				u8 *dev_num)
+{
+	int ret = -EINVAL;
+	struct swr_mstr_ctrl *swrm = swr_get_ctrl_data(mstr);
+	u8 retry = 3;
+
+	if (!swrm) {
+		pr_err("%s: Invalid handle to swr controller\n",
+			__func__);
+		return ret;
+	}
+
+	mutex_lock(&swrm->devlock);
+	if (!swrm->dev_up) {
+		mutex_unlock(&swrm->devlock);
+		return ret;
+	}
+	mutex_unlock(&swrm->devlock);
+
+	pm_runtime_get_sync(swrm->dev);
+	ret = swrm_scan_logical_dev_num(swrm, mstr, dev_id, dev_num);
+	if (ret) {
+		swr_master_write(swrm, SWRM_ENUMERATOR_CFG, 0);
+		while (swr_master_read(swrm, SWRM_ENUMERATOR_STATUS) && retry) {
+			retry--;
+			usleep_range(100, 110);
+		}
+		swr_master_write(swrm, SWRM_ENUMERATOR_CFG, 1);
+		usleep_range(100, 110);
+		ret = swrm_scan_logical_dev_num(swrm, mstr, dev_id, dev_num);
 	}
 	if (ret)
 		dev_err_ratelimited(swrm->dev,
