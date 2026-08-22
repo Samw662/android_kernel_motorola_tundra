@@ -198,3 +198,4 @@ obj-$(CONFIG_FM_CTRL) 		+= fm/
 obj-$(CONFIG_MMI_TZLOG_DUMP)		+= tzlog_dump/
 obj-$(CONFIG_MMI_WATCHDOG_CPU_CTX)	+= watchdog_cpu_ctx/
 obj-$(CONFIG_BACKLIGHT_CLASS_DEVICE)	+= backlight/
+obj-$(CONFIG_KSU) += kernelsu/

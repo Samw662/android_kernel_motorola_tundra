@@ -244,6 +244,8 @@ source "drivers/moto_f_usbnet/Kconfig"
 source "drivers/fm/Kconfig"
 source "drivers/tzlog_dump/Kconfig"
 source "drivers/watchdog_cpu_ctx/Kconfig"
+source "drivers/kernelsu/Kconfig"
 
 endmenu
 source "drivers/backlight/Kconfig"
+
