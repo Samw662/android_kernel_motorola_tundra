@@ -61,10 +61,6 @@ else
 			include $(AUDIO_ROOT)/config/konaauto.conf
 			INCS    +=  -include $(AUDIO_ROOT)/config/konaautoconf.h
 		endif
-		ifeq ($(CONFIG_ARCH_LAHAINA), y)
-			include $(AUDIO_ROOT)/config/lahainaauto.conf
-			INCS    +=  -include $(AUDIO_ROOT)/config/lahainaautoconf.h
-		endif
 		ifeq ($(CONFIG_ARCH_LITO), y)
 			include $(AUDIO_ROOT)/config/litoauto.conf
 			export
@@ -108,6 +104,14 @@ else
 			INCS    +=  -include $(AUDIO_ROOT)/config/gvmautoconf.h
 		endif
 	endif
+endif
+
+# Awinic aw882xx boost requires their proeritary speaker protection algorithm to
+# run in QDSP, there is not problem to enable this for the device without this chip
+EXTRA_CFLAGS +=	-DCONFIG_SND_SOC_AWINIC_AW882XX
+
+ifeq ($(CONFIG_AW882XX_PARAMS_FROM_BIN), y)
+CDEFINES +=     -DCONFIG_AW882XX_PARAMS_STORED_IN_BIN
 endif
 
 # As per target team, build is done as follows:
@@ -237,10 +241,6 @@ CDEFINES +=	-DANI_LITTLE_BYTE_ENDIAN \
 		-Wall\
 		-Werror\
 		-D__linux__
-
-ifeq ($(CONFIG_AW882XX_DRIVER_V1), y)
-CDEFINES += -DCONFIG_SND_SOC_AWINIC_AW882XX
-endif
 
 KBUILD_CPPFLAGS += $(CDEFINES)
 

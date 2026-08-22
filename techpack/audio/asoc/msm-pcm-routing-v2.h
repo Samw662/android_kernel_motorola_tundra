@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (c) 2012-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 /*
  * Add support for 24 and 32bit format for ASM loopback and playback session.
@@ -87,8 +87,8 @@
 #define LPASS_BE_SLIMBUS_6_TX "SLIMBUS_6_TX"
 #define LPASS_BE_QUIN_MI2S_RX "QUIN_MI2S_RX"
 #define LPASS_BE_QUIN_MI2S_TX "QUIN_MI2S_TX"
-#define LPASS_BE_SENARY_MI2S_TX "SENARY_MI2S_TX"
-#define LPASS_BE_SENARY_MI2S_RX "SENARY_MI2S_RX"
+#define LPASS_BE_SENARY_MI2S_TX "SEN_MI2S_TX"
+#define LPASS_BE_SENARY_MI2S_RX "SEN_MI2S_RX"
 
 #define LPASS_BE_PRI_META_MI2S_RX "PRI_META_MI2S_RX"
 #define LPASS_BE_SEC_META_MI2S_RX "SEC_META_MI2S_RX"
@@ -818,17 +818,10 @@ int msm_pcm_routing_set_channel_mixer_cfg(
 	int fe_id, int session_type,
 	struct msm_pcm_channel_mixer *params);
 
-#ifdef CONFIG_PLATFORM_AUTO
 int msm_pcm_routing_set_channel_mixer_runtime(
-	int fe_id, int be_id, int session_id,
+	int be_id, int session_id,
 	int session_type,
 	struct msm_pcm_channel_mixer *params);
-#else
-int msm_pcm_routing_set_channel_mixer_runtime(
-         int be_id, int session_id,
-         int session_type,
-         struct msm_pcm_channel_mixer *params);
-#endif
 
 int msm_pcm_routing_set_stream_ec_ref_chmix_cfg(
 	int fedai_id, struct msm_pcm_channel_mixer *cfg_data);
@@ -904,7 +897,4 @@ int snd_pcm_add_usr_ctls(struct snd_pcm *pcm, int stream,
     unsigned long private_value,
     struct snd_pcm_usr **info_ret);
 #endif
-
-bool msm_pcm_routing_get_portid_copp_idx(int fe_id,
-	int session_type, int *port_id, int *copp_idx);
 #endif /*_MSM_PCM_H*/
