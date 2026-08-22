@@ -150,7 +150,7 @@
 	awinic,aw882xx-max-devs = <2>;
 	qcom,ext-disp-audio-rx = <1>;
 	qcom,wsa-max-devs = <0x0>;
-        qcom,wcn-bt = <0x1>;
+	qcom,wcn-bt = <0x0>;
 	qcom,pri-mi2s-gpios = <&cdc_pri_mi2s_gpios>;
         qcom,msm-mbhc-usbc-audio-supported = <0>;
 	qcom,wcd-disabled = <1>;
