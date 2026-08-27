@@ -1,3 +1,3 @@
 config RBS_FOD_MMI
-	tristate "RBS FOD MMI fingerprint"
-	default m
+	bool "RBS FOD MMI fingerprint"
+	default y

@@ -17,4 +17,12 @@ config TOUCHSCREEN_GOODIX_BRL_SPI
 	help
 		Say Y here if the touchscreen is connected via SPI bus.
 
+config GTP_FOD
+	bool "Goodix FOD (Fingerprint On Display) support"
+	depends on TOUCHSCREEN_GOODIX_BRL
+	default y
+	help
+		Say Y here to enable Goodix FOD (Fingerprint On Display)
+		gesture support for the berlin touchscreen driver.
+
 endif
